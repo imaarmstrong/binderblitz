@@ -18,6 +18,16 @@ export default defineNuxtConfig({
       ]
     }
   },
+  app: {
+    head: {
+      link: [
+        { rel: 'manifest', href: '/manifest.webmanifest' },
+      ],
+      meta: [
+        { name: 'theme-color', content: '#020617' },
+      ],
+    },
+  },
   pwa: {
     registerType: 'autoUpdate',
     devOptions: {
