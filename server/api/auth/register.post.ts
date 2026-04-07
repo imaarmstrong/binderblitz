@@ -1,6 +1,7 @@
 import { H3Event, sendError, createError, readBody } from 'h3'
 import { getDb } from '../../utils/mongo'
 import { generateVerificationCode, hashPassword } from '../../utils/auth'
+import { sendVerificationEmail } from '../../utils/email'
 
 interface RegisterBody {
   email?: string
@@ -66,10 +67,14 @@ export default async function (event: H3Event) {
     usedAt: null,
   })
 
-  // For now, we just log the code on the server. In a real app,
-  // you would send this via an email provider (e.g. Resend, SendGrid).
-  // eslint-disable-next-line no-console
-  console.log(`Verification code for ${email}: ${code}`)
+  // Send verification email via Resend (if configured).
+  // Failures here should not block registration.
+  try {
+    await sendVerificationEmail(email, code)
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('Error while sending verification email', error)
+  }
 
   return {
     ok: true,
