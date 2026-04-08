@@ -26,6 +26,7 @@ const route = useRoute()
 const items = [
   { to: '/', label: 'Browse' },
   { to: '/collections', label: 'My Collections' },
+  { to: '/friends', label: 'Friends' },
   { to: '/profile', label: 'Profile' },
 ]
 </script>

@@ -22,6 +22,13 @@
             Collections
           </NuxtLink>
           <NuxtLink
+            to="/friends"
+            class="hover:text-white/90"
+            :class="route.path.startsWith('/friends') ? 'font-semibold' : 'text-white/80'"
+          >
+            Friends
+          </NuxtLink>
+          <NuxtLink
             to="/profile"
             class="hover:text-white/90"
             :class="route.path.startsWith('/profile') ? 'font-semibold' : 'text-white/80'"
