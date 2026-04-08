@@ -1,6 +1,6 @@
 <template>
   <nav
-	class="fixed bottom-0 left-0 right-0 z-40 border-t border-white/10 bg-black/80 text-white backdrop-blur"
+	class="fixed bottom-0 left-0 right-0 z-40 border-t border-white/10 bg-black/80 text-white backdrop-blur lg:hidden"
   >
     <div class="max-w-7xl mx-auto flex items-stretch justify-around py-2 text-xs">
         <NuxtLink

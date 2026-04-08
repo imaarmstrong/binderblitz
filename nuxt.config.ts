@@ -12,6 +12,18 @@ export default defineNuxtConfig({
     jwtSecret: process.env.JWT_SECRET,
     resendApiKey: process.env.RESEND_API_KEY,
     resendFromEmail: process.env.RESEND_FROM_EMAIL,
+    stripeSecretKey: process.env.STRIPE_SECRET_KEY,
+    stripePriceId: process.env.STRIPE_PRICE_ID,
+    stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
+    stripeSuccessUrl: process.env.STRIPE_SUCCESS_URL,
+    stripeCancelUrl: process.env.STRIPE_CANCEL_URL,
+  },
+  nitro: {
+    routeRules: {
+      '/api/billing/webhook': {
+        bodyParser: false,
+      },
+    },
   },
   vite:{
     optimizeDeps: {

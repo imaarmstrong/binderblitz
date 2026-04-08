@@ -1,8 +1,13 @@
+import { $fetch } from 'ofetch'
+
 interface AuthUser {
   email: string
   role?: string
   emailVerifiedAt?: string | null
   createdAt?: string
+  subscriptionStatus?: string | null
+  subscriptionCurrentPeriodEnd?: string | null
+  subscriptionActive?: boolean
 }
 
 export function useAuthUser() {
@@ -12,12 +17,10 @@ export function useAuthUser() {
   const fetchUser = async () => {
     loading.value = true
     try {
-      const { data, error } = await useFetch<AuthUser>('/api/auth/me')
-      if (error.value) {
-        user.value = null
-      } else {
-        user.value = data.value || null
-      }
+      const data = await $fetch<AuthUser>('/api/auth/me')
+      user.value = data || null
+    } catch {
+      user.value = null
     } finally {
       loading.value = false
     }

@@ -36,5 +36,8 @@ export default async function (event: H3Event) {
     emailVerifiedAt: (user as any).emailVerifiedAt,
     createdAt: (user as any).createdAt,
     role: (user as any).role,
+    subscriptionStatus: (user as any).subscriptionStatus ?? null,
+    subscriptionCurrentPeriodEnd: (user as any).subscriptionCurrentPeriodEnd ?? null,
+    subscriptionActive: (user as any).subscriptionActive ?? false,
   }
 }

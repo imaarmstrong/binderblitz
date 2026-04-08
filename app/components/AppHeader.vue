@@ -3,10 +3,6 @@
     <div class="max-w-7xl mx-auto flex items-center justify-between gap-4 py-4 px-4">
       <NuxtLink to="/" class="flex items-center gap-3">
         <img src="/logo.svg" alt="BinderBlitz logo" class="h-10 w-auto" />
-        <div class="hidden sm:flex flex-col">
-          <span class="font-semibold text-white leading-tight">BinderBlitz</span>
-          <span class="text-xs text-white/70">Track your card sets</span>
-        </div>
       </NuxtLink>
 
       <nav class="hidden md:flex items-center gap-4 text-white text-sm">
@@ -31,6 +27,13 @@
             :class="route.path.startsWith('/profile') ? 'font-semibold' : 'text-white/80'"
           >
             Profile
+          </NuxtLink>
+          <NuxtLink
+            to="/subscribe"
+            class="px-3 py-1 rounded-md border border-emerald-400 text-emerald-200 hover:bg-emerald-500/10 text-xs"
+            :class="user.subscriptionActive ? 'opacity-60 cursor-default' : ''"
+          >
+            {{ user.subscriptionActive ? 'Subscribed' : 'Upgrade' }}
           </NuxtLink>
           <button
             type="button"
