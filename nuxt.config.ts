@@ -17,13 +17,7 @@ export default defineNuxtConfig({
     stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
     stripeSuccessUrl: process.env.STRIPE_SUCCESS_URL,
     stripeCancelUrl: process.env.STRIPE_CANCEL_URL,
-  },
-  nitro: {
-    routeRules: {
-      '/api/billing/webhook': {
-        bodyParser: false,
-      },
-    },
+    stripePortalReturnUrl: process.env.STRIPE_PORTAL_RETURN_URL,
   },
   vite:{
     optimizeDeps: {

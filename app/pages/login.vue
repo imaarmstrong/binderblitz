@@ -52,6 +52,7 @@ definePageMeta({
   middleware: 'guest-only',
 })
 
+const route = useRoute()
 const { fetchUser } = useAuthUser()
 
 const email = ref('')
@@ -78,7 +79,9 @@ const handleLogin = async () => {
 
     // Refresh auth state so the header knows we're logged in
     await fetchUser()
-    message.value = 'Logged in successfully.'
+
+    const redirect = (route.query.redirect as string) || '/'
+    await navigateTo(redirect)
   } catch (e) {
     message.value = 'Unexpected error during login'
     error.value = true
