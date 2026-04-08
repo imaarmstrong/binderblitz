@@ -48,6 +48,10 @@
 </template>
 
 <script setup lang="ts">
+definePageMeta({
+  middleware: 'guest-only',
+})
+
 const { fetchUser } = useAuthUser()
 
 const email = ref('')

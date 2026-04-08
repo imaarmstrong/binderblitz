@@ -90,6 +90,10 @@
 </template>
 
 <script setup lang="ts">
+definePageMeta({
+  middleware: 'guest-only',
+})
+
 const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
