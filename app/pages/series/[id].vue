@@ -7,7 +7,7 @@
 
     <div class="bg-white pt-16">
       <div class="container max-w-7xl mx-auto p-5">
-        <div v-if="series" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+        <div v-if="series" class="grid grid-cols-2 md:grid-cols-3 gap-6">
           <NuxtLink
             v-for="set in series.sets"
             :key="set.id"

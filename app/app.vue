@@ -1,7 +1,10 @@
 <template>
-    <main class="bg-primary">
+    <main class="bg-primary min-h-screen flex flex-col">
         <AppHeader />
-        <NuxtPage />
+        <div class="flex-1 pb-16 md:pb-0">
+            <NuxtPage />
+        </div>
+        <AppFooterNav />
     </main>
 </template>
 
