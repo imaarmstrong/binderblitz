@@ -3,15 +3,45 @@
     <h1 class="text-2xl font-semibold mb-4">My profile</h1>
 
     <div v-if="user" class="space-y-4">
-      <div class="space-y-2 bg-white/10 border border-white/10 rounded-xl p-4">
-        <p v-if="user.firstName || user.lastName">
-          <span class="font-medium">Name:</span>
-          {{ [user.firstName, user.lastName].filter(Boolean).join(' ') }}
-        </p>
-        <p v-if="user.username">
-          <span class="font-medium">Username:</span>
-          {{ user.username }}
-        </p>
+      <form
+        class="space-y-3 bg-white/10 border border-white/10 rounded-xl p-4"
+        @submit.prevent="saveProfile"
+      >
+        <h2 class="text-lg font-semibold">Profile info</h2>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block mb-1 text-sm font-medium" for="firstName">First name</label>
+            <input
+              id="firstName"
+              v-model="firstName"
+              type="text"
+              class="w-full rounded-md border border-white/20 bg-black/30 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-white/60"
+            />
+          </div>
+
+          <div>
+            <label class="block mb-1 text-sm font-medium" for="lastName">Last name</label>
+            <input
+              id="lastName"
+              v-model="lastName"
+              type="text"
+              class="w-full rounded-md border border-white/20 bg-black/30 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-white/60"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label class="block mb-1 text-sm font-medium" for="username">Username</label>
+          <input
+            id="username"
+            v-model="username"
+            type="text"
+            class="w-full rounded-md border border-white/20 bg-black/30 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-white/60"
+          />
+          <p class="mt-1 text-xs text-white/70">Optional; at least 3 characters, shown to friends.</p>
+        </div>
+
         <p><span class="font-medium">Email:</span> {{ user.email }}</p>
         <p><span class="font-medium">Role:</span> {{ user.role || 'user' }}</p>
         <p>
@@ -22,7 +52,18 @@
           <span class="font-medium">Member since:</span>
           {{ new Date(user.createdAt).toLocaleDateString() }}
         </p>
-      </div>
+
+        <button
+          type="submit"
+          class="mt-2 w-full rounded-md bg-white text-black font-semibold py-2 hover:bg-white/90 transition-colors disabled:opacity-60"
+          :disabled="savingProfile"
+        >
+          {{ savingProfile ? 'Saving...' : 'Save profile' }}
+        </button>
+        <p v-if="profileMessage" class="text-xs" :class="profileError ? 'text-red-300' : 'text-emerald-200'">
+          {{ profileMessage }}
+        </p>
+      </form>
 
       <div class="space-y-2 bg-white/10 border border-white/10 rounded-xl p-4">
         <h2 class="text-lg font-semibold">Subscription</h2>
@@ -59,11 +100,58 @@ const { user, fetchUser } = useAuthUser()
 const portalLoading = ref(false)
 const portalError = ref('')
 
-onMounted(() => {
+const firstName = ref('')
+const lastName = ref('')
+const username = ref('')
+const savingProfile = ref(false)
+const profileMessage = ref('')
+const profileError = ref(false)
+
+const hydrateProfile = () => {
+  if (!user.value) return
+  firstName.value = user.value.firstName || ''
+  lastName.value = user.value.lastName || ''
+  username.value = user.value.username || ''
+}
+
+onMounted(async () => {
   if (!user.value) {
-    fetchUser()
+    await fetchUser()
   }
+  hydrateProfile()
 })
+
+const saveProfile = async () => {
+  savingProfile.value = true
+  profileMessage.value = ''
+  profileError.value = false
+  try {
+    const { error } = await useFetch('/api/auth/profile', {
+      method: 'PUT',
+      body: {
+        firstName: firstName.value,
+        lastName: lastName.value,
+        username: username.value,
+      },
+    })
+
+    if (error.value) {
+      profileMessage.value = error.value.data?.message || 'Unable to save profile'
+      profileError.value = true
+      return
+    }
+
+    await fetchUser()
+    hydrateProfile()
+    profileMessage.value = 'Profile updated'
+    profileError.value = false
+  } catch (e) {
+    profileMessage.value = 'Unexpected error while saving profile'
+    profileError.value = true
+  } finally {
+    savingProfile.value = false
+  }
+}
 
 const openPortal = async () => {
   portalLoading.value = true
