@@ -81,7 +81,10 @@ const handleLogin = async () => {
     await fetchUser()
 
     const redirect = (route.query.redirect as string) || '/'
-    await navigateTo(redirect)
+    const safeRedirect =
+      !redirect || redirect === '/login' || redirect.startsWith('/login?') ? '/' : redirect
+
+    await navigateTo(safeRedirect)
   } catch (e) {
     message.value = 'Unexpected error during login'
     error.value = true
