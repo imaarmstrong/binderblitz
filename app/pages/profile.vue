@@ -4,6 +4,14 @@
 
     <div v-if="user" class="space-y-4">
       <div class="space-y-2 bg-white/10 border border-white/10 rounded-xl p-4">
+        <p v-if="user.firstName || user.lastName">
+          <span class="font-medium">Name:</span>
+          {{ [user.firstName, user.lastName].filter(Boolean).join(' ') }}
+        </p>
+        <p v-if="user.username">
+          <span class="font-medium">Username:</span>
+          {{ user.username }}
+        </p>
         <p><span class="font-medium">Email:</span> {{ user.email }}</p>
         <p><span class="font-medium">Role:</span> {{ user.role || 'user' }}</p>
         <p>

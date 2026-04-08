@@ -4,6 +4,39 @@
       <h1 class="text-2xl font-semibold mb-6 text-center">Create an account</h1>
 
       <form v-if="step === 'register'" @submit.prevent="handleRegister" class="space-y-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block mb-1 text-sm font-medium" for="firstName">First name</label>
+            <input
+              id="firstName"
+              v-model="firstName"
+              type="text"
+              class="w-full rounded-md border border-white/20 bg-black/30 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-white/60"
+            />
+          </div>
+
+          <div>
+            <label class="block mb-1 text-sm font-medium" for="lastName">Last name</label>
+            <input
+              id="lastName"
+              v-model="lastName"
+              type="text"
+              class="w-full rounded-md border border-white/20 bg-black/30 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-white/60"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label class="block mb-1 text-sm font-medium" for="username">Username</label>
+          <input
+            id="username"
+            v-model="username"
+            type="text"
+            class="w-full rounded-md border border-white/20 bg-black/30 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-white/60"
+          />
+          <p class="mt-1 text-xs text-white/70">Optional; at least 3 characters, shown to friends.</p>
+        </div>
+
         <div>
           <label class="block mb-1 text-sm font-medium" for="email">Email</label>
           <input
@@ -102,6 +135,9 @@ const loading = ref(false)
 const message = ref('')
 const error = ref(false)
 const step = ref<'register' | 'verify'>('register')
+const firstName = ref('')
+const lastName = ref('')
+const username = ref('')
 
 const passwordMismatch = computed(() => {
   return password.value.length > 0 && confirmPassword.value.length > 0 && password.value !== confirmPassword.value
@@ -120,7 +156,13 @@ const handleRegister = async () => {
   try {
     const { data, error: fetchError } = await useFetch('/api/auth/register', {
       method: 'POST',
-      body: { email: email.value, password: password.value },
+      body: {
+        email: email.value,
+        password: password.value,
+        firstName: firstName.value,
+        lastName: lastName.value,
+        username: username.value,
+      },
     })
 
     if (fetchError.value) {

@@ -33,6 +33,9 @@ export default async function (event: H3Event) {
 
   return {
     email: (user as any).email,
+    firstName: (user as any).firstName ?? null,
+    lastName: (user as any).lastName ?? null,
+    username: (user as any).username ?? null,
     emailVerifiedAt: (user as any).emailVerifiedAt,
     createdAt: (user as any).createdAt,
     role: (user as any).role,

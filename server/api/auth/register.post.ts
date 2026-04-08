@@ -6,6 +6,9 @@ import { sendVerificationEmail } from '../../utils/email'
 interface RegisterBody {
   email?: string
   password?: string
+  firstName?: string
+  lastName?: string
+  username?: string
 }
 
 export default async function (event: H3Event) {
@@ -13,6 +16,10 @@ export default async function (event: H3Event) {
 
   const email = body.email?.trim().toLowerCase()
   const password = body.password
+  const firstName = body.firstName?.trim() || undefined
+  const lastName = body.lastName?.trim() || undefined
+  const usernameRaw = body.username?.trim() || undefined
+  const username = usernameRaw ? usernameRaw.toLowerCase() : undefined
 
   if (!email || !password) {
     return sendError(
@@ -46,10 +53,30 @@ export default async function (event: H3Event) {
   const userCount = await users.countDocuments({})
   const role = userCount === 0 ? 'owner' : 'user'
 
+   if (username) {
+    if (username.length < 3) {
+      return sendError(
+        event,
+        createError({ statusCode: 400, statusMessage: 'Username must be at least 3 characters' })
+      )
+    }
+
+    const usernameTaken = await users.findOne({ username })
+    if (usernameTaken) {
+      return sendError(
+        event,
+        createError({ statusCode: 409, statusMessage: 'Username is already taken' })
+      )
+    }
+  }
+
   const { insertedId } = await users.insertOne({
     email,
     passwordHash,
     role,
+    firstName,
+    lastName,
+    username,
     createdAt: now,
     emailVerifiedAt: null,
   })

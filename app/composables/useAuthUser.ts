@@ -2,6 +2,9 @@ import { $fetch } from 'ofetch'
 
 interface AuthUser {
   email: string
+  firstName?: string | null
+  lastName?: string | null
+  username?: string | null
   role?: string
   emailVerifiedAt?: string | null
   createdAt?: string
