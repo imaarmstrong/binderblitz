@@ -1,49 +1,151 @@
 <template>
-  <div class="py-20">
-    <div class="container max-w-7xl mx-auto p-5">
-      <small class="uppercase text-white font-black">set name</small>
-      <div v-if="set" class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <h1 class="text-5xl text-secondary font-semibold">{{ set.name }}</h1>
-        <div class="flex items-center gap-3">
+  <!-- Hero -->
+  <div class="bg-gradient-to-r from-indigo-700 via-purple-700 to-fuchsia-600 py-12 md:py-16 text-white">
+    <div class="container max-w-7xl mx-auto px-5 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+      <div>
+        <p class="text-[11px] uppercase tracking-[0.2em] text-white/70 mb-2">Set name</p>
+        <h1 v-if="set" class="text-4xl md:text-5xl font-semibold leading-tight">
+          {{ set.name }}
+        </h1>
+        <p v-if="set" class="mt-3 text-sm text-white/80">
+          {{ collectedCount }} / {{ totalCards }} cards collected
+          <span v-if="totalCards">• {{ collectedPercent }}% complete</span>
+        </p>
+      </div>
+      <div v-if="set" class="flex flex-col items-stretch md:items-end gap-3">
+        <div class="bg-black/20 border border-white/20 rounded-xl px-4 py-3 text-xs min-w-[220px]">
+          <p class="text-white/70 mb-1">Estimated value of collected cards</p>
+          <p class="text-lg font-semibold">
+            {{ currencySymbol }}{{ formatAmount(convertFromEUR(collectedValueRaw)) }}
+          </p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 text-[11px]">
+          <span class="text-white/70">Currency</span>
+          <select
+            v-model="currency"
+            class="rounded-md border border-white/40 bg-black/20 px-2 py-1 text-xs"
+          >
+            <option value="EUR">€ EUR</option>
+            <option value="USD">$ USD</option>
+            <option value="GBP">£ GBP</option>
+          </select>
+          <span class="text-white/70 ml-2">Grade</span>
+          <select
+            v-model.number="gradeMultiplier"
+            class="rounded-md border border-white/40 bg-black/20 px-2 py-1 text-xs"
+          >
+            <option :value="1">Raw (1x)</option>
+            <option :value="1.5">Mid (~1.5x)</option>
+            <option :value="2">High (~2x)</option>
+          </select>
           <button
-            class="px-4 py-2 rounded-md text-sm font-semibold border border-white/40 text-white bg-white/10 hover:bg-white/20 disabled:opacity-60"
+            class="mt-1 md:mt-0 ml-0 md:ml-2 px-3 py-1 rounded-full text-[11px] font-semibold border border-white/40 bg-white/10 hover:bg-white/20 disabled:opacity-60"
             :disabled="collectionLoading"
             @click="toggleCollecting"
           >
             {{ isCollecting ? 'Stop tracking this set' : 'Start tracking this set' }}
           </button>
-          <p v-if="isCollecting" class="text-xs text-white/80">
-            {{ collectedCount }} / {{ totalCards }} cards collected
-          </p>
         </div>
       </div>
     </div>
   </div>
-  <div class="bg-white pt-20">
-    <div class="container max-w-7xl mx-auto p-5">
+
+  <!-- Content -->
+  <div class="bg-white py-8 md:py-10">
+    <div class="container max-w-7xl mx-auto px-5">
+      <!-- Controls row -->
       <div
         v-if="set"
-        class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
+        class="mb-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3"
+      >
+        <div class="flex items-center gap-2 text-xs font-semibold">
+          <button
+            class="px-4 py-1.5 rounded-full border transition-colors"
+            :class="filterMode === 'all' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-800 border-gray-300'"
+            @click="filterMode = 'all'"
+          >
+            All
+          </button>
+          <button
+            class="px-4 py-1.5 rounded-full border transition-colors"
+            :class="filterMode === 'collected' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-800 border-gray-300'"
+            @click="filterMode = 'collected'"
+          >
+            Collected
+          </button>
+          <button
+            class="px-4 py-1.5 rounded-full border transition-colors"
+            :class="filterMode === 'uncollected' ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-gray-800 border-gray-300'"
+            @click="filterMode = 'uncollected'"
+          >
+            To collect
+          </button>
+        </div>
+
+        <div class="flex-1 max-w-md">
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Search cards by name or number"
+            class="w-full rounded-full border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          />
+        </div>
+      </div>
+
+      <p
+        v-if="set"
+        class="mb-4 text-xs text-gray-600"
+      >
+        Showing
+        <span class="font-semibold">{{ visibleCardCount }}</span>
+        of
+        <span class="font-semibold">{{ totalCards }}</span>
+        cards
+        <span v-if="filterMode !== 'all'">
+          • Filter:
+          <span class="font-semibold">{{ filterMode === 'collected' ? 'Collected' : 'To collect' }}</span>
+        </span>
+        <span v-if="searchQuery">
+          • Search:
+          <span class="font-semibold">"{{ searchQuery }}"</span>
+        </span>
+      </p>
+
+      <div
+        v-if="set"
+        class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 md:gap-6"
       >
         <div
           v-for="card in paginatedCards"
           :key="card.id"
-          class="border-2 p-5 rounded-lg flex flex-col gap-2"
+          class="border border-gray-200 rounded-2xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow flex flex-col"
         >
           <NuxtLink :to="`/card/${card.id}`" class="flex-1">
             <img
               :src="card.images?.small || `${card.image}/low.png`"
               alt=""
-              class="mb-2"
+              class="w-full mb-3 rounded-b-none object-cover"
             >
-            <h2 class="font-bold text-xl">{{ card.name }}</h2>
-            <small>
-              <strong class="text-secondary">Card No.</strong>
+            <h2 class="font-bold text-xl px-4">{{ card.name }}</h2>
+            <p class="px-4 pb-1 text-xs text-gray-600">
+              <span class="font-semibold text-secondary">Card No.</span>
               {{ card.localId ?? card.number }}
-            </small>
+            </p>
           </NuxtLink>
+          <p
+            v-if="cardRawPriceText(card)"
+            class="text-xs text-gray-700 px-4"
+          >
+            ~{{ currencySymbol }}{{ cardRawPriceText(card) }} (raw)
+          </p>
+          <p
+            v-if="cardGradedPriceText(card)"
+            class="text-[11px] text-gray-500 px-4"
+          >
+            Est. graded: ~{{ currencySymbol }}{{ cardGradedPriceText(card) }}
+          </p>
           <button
-            class="mt-2 px-2 py-1 rounded text-xs font-semibold border"
+            class="mt-2 mx-4 mb-4 px-3 py-1.5 rounded-full text-xs font-semibold border text-center"
             :class="
               isCardCollected(card.id)
                 ? 'bg-emerald-500 border-emerald-600 text-white'
@@ -92,6 +194,11 @@ const id = route.params.id as string;
 const page = ref(1);
 const pageSize = 20;
 
+const searchQuery = ref("");
+const filterMode = ref<"all" | "collected" | "uncollected">("all");
+const gradeMultiplier = ref(1);
+const currency = ref<"EUR" | "USD" | "GBP">("EUR");
+
 function cloneCard(value: any): any {
   if (value === null || typeof value !== "object") return value;
   if (Array.isArray(value)) return value.map(cloneCard);
@@ -121,9 +228,13 @@ const { data: set } = await useAsyncData(`set-${id}`, async () => {
 const collectionLoading = ref(false);
 const collectionSaving = ref(false);
 const collectedCardIds = ref<string[]>([]);
+const pricedCards = ref<Record<string, number>>({});
 
 const totalCards = computed(() => set.value?.cards.length ?? 0);
 const collectedCount = computed(() => collectedCardIds.value.length);
+const collectedPercent = computed(() =>
+  totalCards.value ? Math.round((collectedCount.value / totalCards.value) * 100) : 0,
+);
 const isCollecting = computed(() => collectedCardIds.value.length > 0);
 
 const loadCollection = async () => {
@@ -137,6 +248,30 @@ const loadCollection = async () => {
   } finally {
     collectionLoading.value = false;
   }
+};
+
+let tcgdexClient: TCGdex | null = null;
+
+const ensurePriceForCard = async (cardId: string) => {
+  if (pricedCards.value[cardId] !== undefined) return;
+  try {
+    if (!tcgdexClient) {
+      tcgdexClient = new TCGdex("en");
+    }
+    const fullCard: any = await (tcgdexClient as any).fetch("cards", cardId);
+    const rawPrice = fullCard?.pricing?.cardmarket?.avg ?? null;
+    if (typeof rawPrice === "number" && Number.isFinite(rawPrice) && rawPrice > 0) {
+      pricedCards.value = { ...pricedCards.value, [cardId]: rawPrice };
+    }
+  } catch {
+    // ignore pricing errors; card will be treated as unpriced
+  }
+};
+
+const loadPricesForCollected = async () => {
+  const ids = [...collectedCardIds.value];
+  if (!ids.length) return;
+  await Promise.all(ids.map((id) => ensurePriceForCard(id)));
 };
 
 const persistCollection = async () => {
@@ -155,6 +290,30 @@ const isCardCollected = (cardId: string) => {
   return collectedCardIds.value.includes(cardId);
 };
 
+const cardPrice = (card: any): number | null => {
+  const cached = pricedCards.value[card.id as string];
+  if (typeof cached === "number" && Number.isFinite(cached) && cached > 0) {
+    return cached;
+  }
+
+  const price = card?.pricing?.cardmarket?.avg ?? null;
+  if (typeof price !== "number" || !Number.isFinite(price) || price <= 0) return null;
+  return price;
+};
+
+const cardRawPriceText = (card: any): string | null => {
+  const price = cardPrice(card);
+  if (!price) return null;
+  return formatAmount(convertFromEUR(price));
+};
+
+const cardGradedPriceText = (card: any): string | null => {
+  const price = cardPrice(card);
+  if (!price) return null;
+  const est = price * gradeMultiplier.value;
+  return formatAmount(convertFromEUR(est));
+};
+
 const toggleCard = async (cardId: string) => {
   const current = new Set(collectedCardIds.value);
   if (current.has(cardId)) {
@@ -164,6 +323,10 @@ const toggleCard = async (cardId: string) => {
   }
   collectedCardIds.value = Array.from(current);
   await persistCollection();
+  if (current.has(cardId)) {
+    // Newly collected: try to load its price
+    await ensurePriceForCard(cardId);
+  }
 };
 
 const toggleCollecting = async () => {
@@ -177,7 +340,7 @@ const toggleCollecting = async () => {
   }
 };
 
-onMounted(() => {
+onMounted(async () => {
   const q = route.query.page;
   const raw = Array.isArray(q) ? q[0] : q;
   const parsed = parseInt((raw ?? "") as string, 10);
@@ -187,19 +350,79 @@ onMounted(() => {
   }
 
   // Also load collection state for this set
-  loadCollection();
+  await loadCollection();
+  await loadPricesForCollected();
+});
+
+const filteredCards = computed(() => {
+  if (!set.value) return [];
+  const q = searchQuery.value.trim().toLowerCase();
+
+  return set.value.cards.filter((card: any) => {
+    const name = (card.name ?? "").toString().toLowerCase();
+    const number = (card.localId ?? card.number ?? "").toString().toLowerCase();
+    const matchesSearch = !q || name.includes(q) || number.includes(q);
+
+    const collected = isCardCollected(card.id as string);
+    const matchesFilter =
+      filterMode.value === "all" ||
+      (filterMode.value === "collected" && collected) ||
+      (filterMode.value === "uncollected" && !collected);
+
+    return matchesSearch && matchesFilter;
+  });
+});
+
+watch([searchQuery, filterMode], () => {
+  page.value = 1;
 });
 
 const totalPages = computed(() => {
   if (!set.value) return 1;
-  return Math.max(1, Math.ceil(set.value.cards.length / pageSize));
+  const count = filteredCards.value.length;
+  return Math.max(1, Math.ceil(count / pageSize));
 });
 
 const paginatedCards = computed(() => {
   if (!set.value) return [];
+  const cards = filteredCards.value;
   const start = (page.value - 1) * pageSize;
-  return set.value.cards.slice(start, start + pageSize);
+  return cards.slice(start, start + pageSize);
 });
+
+const collectedValueRaw = computed(() => {
+  if (!set.value) return 0;
+  return set.value.cards.reduce((sum: number, card: any) => {
+    if (!isCardCollected(card.id as string)) return sum;
+    const price = cardPrice(card);
+    return price ? sum + price : sum;
+  }, 0);
+});
+
+const visibleCardCount = computed(() => filteredCards.value.length);
+// Base pricing is EUR (Cardmarket), totals are maintained in EUR and
+// converted to the display currency when rendered.
+const rates: Record<"EUR" | "USD" | "GBP", number> = {
+  EUR: 1,
+  USD: 1.08,
+  GBP: 0.86,
+};
+
+const currencySymbol = computed(() => {
+  if (currency.value === "USD") return "$";
+  if (currency.value === "GBP") return "£";
+  return "€";
+});
+
+const convertFromEUR = (amount: number): number => {
+  const rate = rates[currency.value] ?? 1;
+  return amount * rate;
+};
+
+const formatAmount = (amount: number): string => {
+  if (!Number.isFinite(amount)) return "0.00";
+  return amount.toFixed(2);
+};
 
 watch(page, (newPage) => {
   router.replace({

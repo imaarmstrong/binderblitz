@@ -19,11 +19,15 @@ export function useAuthUser() {
 
   const fetchUser = async () => {
     loading.value = true
+    const previous = user.value
     try {
       const data = await $fetch<AuthUser>('/api/auth/me')
       user.value = data || null
     } catch {
-      user.value = null
+      // If we previously had a user, keep it on transient errors
+      if (!previous) {
+        user.value = null
+      }
     } finally {
       loading.value = false
     }

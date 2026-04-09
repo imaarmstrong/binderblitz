@@ -1,7 +1,8 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center px-4">
-    <div class="w-full max-w-md rounded-xl border border-white/10 bg-white/10 backdrop-blur-md shadow-lg p-8 text-white">
-      <h1 class="text-2xl font-semibold mb-6 text-center">Create an account</h1>
+  <div class="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-8">
+    <div class="w-full max-w-md rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md shadow-xl p-8 text-white">
+      <h1 class="text-2xl font-semibold mb-2 text-center">Create an account</h1>
+      <p class="text-sm text-white/70 mb-6 text-center">Track your cards, share progress with friends, and see your collection's value over time.</p>
 
       <form v-if="step === 'register'" @submit.prevent="handleRegister" class="space-y-4">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">

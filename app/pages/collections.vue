@@ -1,19 +1,28 @@
 <template>
-  <div class="py-20">
-    <div class="container max-w-7xl mx-auto p-5 text-white">
-      <h1 class="text-3xl font-semibold mb-4">My collections</h1>
+  <div class="py-8 md:py-10">
+    <div class="container max-w-7xl mx-auto px-5 text-white">
+      <section class="mb-6 md:mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <p class="text-[11px] uppercase tracking-[0.2em] text-white/60 mb-2">My collections</p>
+          <h1 class="text-3xl md:text-4xl font-semibold mb-1">Tracked sets</h1>
+          <p class="text-sm text-white/70 max-w-xl">
+            See how close you are to completing each set you're tracking.
+          </p>
+        </div>
+        <div v-if="items.length" class="flex gap-3 text-xs">
+          <div class="bg-white/5 border border-white/10 rounded-2xl px-4 py-3">
+            <p class="text-white/60 mb-1">Cards collected</p>
+            <p class="text-lg font-semibold">{{ totalCollected }}</p>
+          </div>
+          <div class="bg-white/5 border border-white/10 rounded-2xl px-4 py-3">
+            <p class="text-white/60 mb-1">Completion</p>
+            <p class="text-lg font-semibold">{{ totalPercentage.toFixed(1) }}%</p>
+          </div>
+        </div>
+      </section>
 
-      <div v-if="items.length" class="mb-6 text-sm text-white/80">
-        <p>
-          Total collected: <span class="font-semibold">{{ totalCollected }}</span>
-          of
-          <span class="font-semibold">{{ totalCards }}</span>
-          cards ({{ totalPercentage.toFixed(1) }}%)
-        </p>
-      </div>
-
-      <div v-if="!items.length" class="text-white/80">
-        You haven't started tracking any sets yet. Visit a set page to mark cards as collected.
+      <div v-if="!items.length" class="text-white/75 text-sm bg-white/5 border border-white/10 rounded-2xl px-4 py-3">
+        You haven't started tracking any sets yet. Open a set and start marking cards as collected to see your progress here.
       </div>
 
       <div v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
@@ -21,20 +30,26 @@
           v-for="item in items"
           :key="item.setId"
           :to="`/set/${item.setId}`"
-          class="rounded-xl border border-white/10 bg-white/10 backdrop-blur-md shadow-lg p-5 hover:bg-white/15 transition-colors flex flex-col gap-3"
+          class="group rounded-2xl border border-white/8 bg-white/5 hover:bg-white/10 transition-all shadow-sm hover:shadow-lg p-5 flex flex-col gap-3"
         >
           <div class="flex items-center gap-3">
-            <div v-if="item.logo" class="w-14 h-14 flex items-center justify-center bg-white/20 rounded-lg overflow-hidden">
+            <div v-if="item.logo" class="w-14 h-14 flex items-center justify-center bg-white/10 rounded-xl overflow-hidden">
               <img :src="`${item.logo}.png`" :alt="item.name" class="max-h-full max-w-full object-contain" />
             </div>
-            <div>
-              <h2 class="font-semibold text-lg">{{ item.name }}</h2>
-              <p class="text-xs text-white/70">
+            <div class="flex-1">
+              <h2 class="font-semibold text-base md:text-lg mb-1">{{ item.name }}</h2>
+              <p class="text-[11px] text-white/70">
                 {{ item.collectedCardCount }} / {{ item.totalCards ?? '?' }} cards collected
                 <span v-if="item.totalCards" class="ml-1">
                   ({{ itemPercentage(item).toFixed(1) }}%)
                 </span>
               </p>
+              <div class="mt-2 h-1.5 rounded-full bg-white/10 overflow-hidden" v-if="item.totalCards">
+                <div
+                  class="h-full rounded-full bg-emerald-400"
+                  :style="{ width: `${itemPercentage(item)}%` }"
+                />
+              </div>
             </div>
           </div>
         </NuxtLink>

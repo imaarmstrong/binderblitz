@@ -23,6 +23,7 @@ export default async function (event: H3Event) {
   const db = await getDb()
   const friendships = db.collection('friendships')
   const users = db.collection('users')
+  const collections = db.collection('setCollections')
 
   const userId = new ObjectId(payload.sub)
 
@@ -47,15 +48,47 @@ export default async function (event: H3Event) {
 
   const friendUsers = await users
     .find({ _id: { $in: friendIds } })
-    .project({ email: 1, createdAt: 1 })
+    .project({ email: 1, createdAt: 1, username: 1 })
     .toArray()
 
-  const friendMap = new Map<string, { email: string; createdAt?: Date }>()
+  const friendMap = new Map<
+    string,
+    { email: string; createdAt?: Date; username?: string | null }
+  >()
   for (const u of friendUsers) {
     friendMap.set((u._id as ObjectId).toString(), {
       email: (u as any).email as string,
       createdAt: (u as any).createdAt as Date | undefined,
+      username: (u as any).username ?? null,
     })
+  }
+
+  const collectionDocs = await collections
+    .find({ userId: { $in: friendIds } })
+    .project({ userId: 1, collectedCardIds: 1 })
+    .toArray()
+
+  const progressMap = new Map<
+    string,
+    { totalSetsTracked: number; totalCardsCollected: number }
+  >()
+  for (const c of collectionDocs) {
+    const ownerId = ((c as any).userId as ObjectId).toString()
+    const existing = progressMap.get(ownerId) ?? {
+      totalSetsTracked: 0,
+      totalCardsCollected: 0,
+    }
+
+    const collectedCardIds =
+      (c as any).collectedCardIds &&
+      Array.isArray((c as any).collectedCardIds)
+        ? ((c as any).collectedCardIds as string[])
+        : []
+
+    existing.totalSetsTracked += 1
+    existing.totalCardsCollected += collectedCardIds.length
+
+    progressMap.set(ownerId, existing)
   }
 
   const items = docs.map((doc) => {
@@ -63,10 +96,18 @@ export default async function (event: H3Event) {
     const addresseeId = (doc as any).addresseeId as ObjectId
     const otherId = requesterId.toString() === userId.toString() ? addresseeId : requesterId
     const other = friendMap.get(otherId.toString())
+    const progress = progressMap.get(otherId.toString())
 
     return {
       id: (doc._id as ObjectId).toString(),
+      friendId: otherId.toString(),
       friendEmail: other?.email ?? 'Unknown user',
+      friendUsername: other?.username ?? null,
+      memberSince: other?.createdAt ?? null,
+      progress: {
+        totalSetsTracked: progress?.totalSetsTracked ?? 0,
+        totalCardsCollected: progress?.totalCardsCollected ?? 0,
+      },
       since: (doc as any).updatedAt ?? (doc as any).createdAt ?? null,
     }
   })

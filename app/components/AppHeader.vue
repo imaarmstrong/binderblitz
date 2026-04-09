@@ -1,62 +1,75 @@
 <template>
-  <header class="bg-primary/95 backdrop-blur border-b border-white/10">
-    <div class="max-w-7xl mx-auto flex items-center justify-between gap-4 py-4 px-4">
-      <NuxtLink to="/" class="flex items-center gap-3">
-        <img src="/logo.svg" alt="BinderBlitz logo" class="h-10 w-auto" />
+  <header class="sticky top-0 z-40 border-b border-white/10 bg-slate-950/80 backdrop-blur">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-4 py-3 px-4">
+      <NuxtLink to="/" class="flex items-center gap-2">
+        <img src="/logo.svg" alt="BinderBlitz logo" class="h-8 w-auto" />
+        <span class="hidden sm:inline text-sm font-semibold tracking-wide text-white/90">
+          BinderBlitz
+        </span>
       </NuxtLink>
 
-      <nav class="hidden md:flex items-center gap-4 text-white text-sm">
+      <nav class="hidden md:flex items-center gap-2 text-xs">
         <template v-if="user">
           <NuxtLink
             to="/"
-            class="hover:text-white/90"
-            :class="route.path === '/' ? 'font-semibold' : 'text-white/80'"
+            class="px-3 py-1.5 rounded-full transition-colors"
+            :class="navClass('/')"
           >
             Browse
           </NuxtLink>
           <NuxtLink
             to="/collections"
-            class="hover:text-white/90"
-            :class="route.path.startsWith('/collections') ? 'font-semibold' : 'text-white/80'"
+            class="px-3 py-1.5 rounded-full transition-colors"
+            :class="navClass('/collections')"
           >
             Collections
           </NuxtLink>
           <NuxtLink
+            to="/portfolio"
+            class="px-3 py-1.5 rounded-full transition-colors"
+            :class="navClass('/portfolio')"
+          >
+            Portfolio
+          </NuxtLink>
+          <NuxtLink
             to="/friends"
-            class="hover:text-white/90"
-            :class="route.path.startsWith('/friends') ? 'font-semibold' : 'text-white/80'"
+            class="px-3 py-1.5 rounded-full transition-colors"
+            :class="navClass('/friends')"
           >
             Friends
           </NuxtLink>
           <NuxtLink
             to="/profile"
-            class="hover:text-white/90"
-            :class="route.path.startsWith('/profile') ? 'font-semibold' : 'text-white/80'"
+            class="px-3 py-1.5 rounded-full transition-colors"
+            :class="navClass('/profile')"
           >
             Profile
           </NuxtLink>
           <NuxtLink
             to="/subscribe"
-            class="px-3 py-1 rounded-md border border-emerald-400 text-emerald-200 hover:bg-emerald-500/10 text-xs"
-            :class="user.subscriptionActive ? 'opacity-60 cursor-default' : ''"
+            class="ml-2 px-3 py-1.5 rounded-full border text-xs"
+            :class="user.subscriptionActive ? 'border-emerald-500/40 text-emerald-200/70 cursor-default opacity-70' : 'border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10'"
           >
             {{ user.subscriptionActive ? 'Subscribed' : 'Upgrade' }}
           </NuxtLink>
           <button
             type="button"
-            class="px-3 py-1 rounded-md border border-white/40 hover:bg-white/10 text-xs"
+            class="ml-1 px-3 py-1.5 rounded-full border border-white/30 text-xs text-white/80 hover:bg-white/10"
             @click="handleLogout"
           >
             Logout
           </button>
         </template>
         <template v-else>
-          <NuxtLink to="/login" class="hover:text-white/90 text-white/80">
+          <NuxtLink
+            to="/login"
+            class="px-3 py-1.5 rounded-full text-xs text-white/80 hover:bg-white/10"
+          >
             Log in
           </NuxtLink>
           <NuxtLink
             to="/register"
-            class="px-3 py-1 rounded-md border border-white/40 hover:bg-white/10 text-xs"
+            class="px-3 py-1.5 rounded-full border border-white/30 text-xs hover:bg-white/10"
           >
             Sign up
           </NuxtLink>
@@ -77,6 +90,11 @@ onMounted(() => {
 
 const handleLogout = async () => {
   await logout()
+}
+
+const navClass = (pathPrefix: string) => {
+  const isActive = route.path === pathPrefix || route.path.startsWith(`${pathPrefix}/`)
+  return isActive ? 'bg-white text-slate-950 font-semibold' : 'text-white/70 hover:bg-white/10'
 }
 </script>
 
