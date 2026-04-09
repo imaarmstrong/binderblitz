@@ -51,31 +51,43 @@
   </div>
 
   <!-- Content -->
-  <div class="bg-white py-8 md:py-10">
-    <div class="container max-w-7xl mx-auto px-5">
+  <div class="bg-slate-950 py-8 md:py-10">
+    <div class="container max-w-7xl mx-auto px-5 text-white">
       <!-- Controls row -->
       <div
         v-if="set"
         class="mb-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3"
       >
-        <div class="flex items-center gap-2 text-xs font-semibold">
+        <div class="flex items-center gap-2 text-[11px] font-semibold">
           <button
             class="px-4 py-1.5 rounded-full border transition-colors"
-            :class="filterMode === 'all' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-800 border-gray-300'"
+            :class="
+              filterMode === 'all'
+                ? 'bg-white text-slate-950 border-white shadow-sm'
+                : 'bg-transparent text-white/80 border-white/40 hover:bg-white/10'
+            "
             @click="filterMode = 'all'"
           >
             All
           </button>
           <button
             class="px-4 py-1.5 rounded-full border transition-colors"
-            :class="filterMode === 'collected' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-800 border-gray-300'"
+            :class="
+              filterMode === 'collected'
+                ? 'bg-emerald-500 text-slate-950 border-emerald-300 shadow-sm'
+                : 'bg-transparent text-emerald-200 border-emerald-400/60 hover:bg-emerald-500/10'
+            "
             @click="filterMode = 'collected'"
           >
             Collected
           </button>
           <button
             class="px-4 py-1.5 rounded-full border transition-colors"
-            :class="filterMode === 'uncollected' ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-gray-800 border-gray-300'"
+            :class="
+              filterMode === 'uncollected'
+                ? 'bg-amber-500 text-slate-950 border-amber-300 shadow-sm'
+                : 'bg-transparent text-amber-200 border-amber-400/60 hover:bg-amber-500/10'
+            "
             @click="filterMode = 'uncollected'"
           >
             To collect
@@ -87,19 +99,19 @@
             v-model="searchQuery"
             type="text"
             placeholder="Search cards by name or number"
-            class="w-full rounded-full border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            class="w-full rounded-full border border-white/15 bg-black/40 px-4 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-500"
           />
         </div>
       </div>
 
       <p
         v-if="set"
-        class="mb-4 text-xs text-gray-600"
+        class="mb-4 text-[11px] text-white/70"
       >
         Showing
-        <span class="font-semibold">{{ visibleCardCount }}</span>
+        <span class="font-semibold text-white">{{ visibleCardCount }}</span>
         of
-        <span class="font-semibold">{{ totalCards }}</span>
+        <span class="font-semibold text-white">{{ totalCards }}</span>
         cards
         <span v-if="filterMode !== 'all'">
           • Filter:
@@ -118,38 +130,46 @@
         <div
           v-for="card in paginatedCards"
           :key="card.id"
-          class="border border-gray-200 rounded-2xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow flex flex-col"
+          class="relative rounded-2xl overflow-hidden bg-slate-900/80 border border-white/10 shadow-sm hover:shadow-xl hover:border-white/25 transition-all flex flex-col"
         >
+          <div
+            v-if="isCardCollected(card.id)"
+            class="absolute right-2 top-2 z-10 rounded-full bg-emerald-500 text-[10px] font-semibold px-2 py-0.5 text-slate-950 shadow"
+          >
+            Collected
+          </div>
           <NuxtLink :to="`/card/${card.id}`" class="flex-1">
             <img
               :src="card.images?.small || `${card.image}/low.png`"
               alt=""
-              class="w-full mb-3 rounded-b-none object-cover"
+              class="w-full mb-3 object-cover"
             >
-            <h2 class="font-bold text-xl px-4">{{ card.name }}</h2>
-            <p class="px-4 pb-1 text-xs text-gray-600">
+            <h2 class="font-semibold text-sm md:text-base px-4 text-white">{{ card.name }}</h2>
+            <p class="px-4 pb-1 text-[11px] text-white/60">
               <span class="font-semibold text-secondary">Card No.</span>
               {{ card.localId ?? card.number }}
             </p>
           </NuxtLink>
-          <p
-            v-if="cardRawPriceText(card)"
-            class="text-xs text-gray-700 px-4"
-          >
-            ~{{ currencySymbol }}{{ cardRawPriceText(card) }} (raw)
-          </p>
-          <p
-            v-if="cardGradedPriceText(card)"
-            class="text-[11px] text-gray-500 px-4"
-          >
-            Est. graded: ~{{ currencySymbol }}{{ cardGradedPriceText(card) }}
-          </p>
+          <div class="px-4 pb-3 space-y-0.5">
+            <p
+              v-if="cardRawPriceText(card)"
+              class="text-[11px] text-white/80"
+            >
+              ~{{ currencySymbol }}{{ cardRawPriceText(card) }} (raw)
+            </p>
+            <p
+              v-if="cardGradedPriceText(card)"
+              class="text-[10px] text-white/60"
+            >
+              Est. graded: ~{{ currencySymbol }}{{ cardGradedPriceText(card) }}
+            </p>
+          </div>
           <button
-            class="mt-2 mx-4 mb-4 px-3 py-1.5 rounded-full text-xs font-semibold border text-center"
+            class="mt-auto mx-4 mb-4 px-3 py-1.5 rounded-full text-[11px] font-semibold border text-center"
             :class="
               isCardCollected(card.id)
-                ? 'bg-emerald-500 border-emerald-600 text-white'
-                : 'bg-white border-gray-300 text-gray-800'
+                ? 'bg-emerald-500 border-emerald-400 text-slate-950'
+                : 'bg-transparent border-white/30 text-white hover:bg-white/10'
             "
             :disabled="collectionSaving"
             @click="toggleCard(card.id)"
@@ -159,9 +179,9 @@
         </div>
       </div>
 
-      <div v-if="set" class="mt-4 flex items-center gap-4">
+      <div v-if="set" class="mt-6 flex items-center justify-center gap-3 text-xs text-white/80">
         <button
-          class="px-3 py-1 border rounded disabled:opacity-50"
+          class="px-3 py-1.5 rounded-full border border-white/20 bg-white/5 disabled:opacity-40 disabled:bg-transparent"
           :disabled="page === 1"
           @click="page--"
         >
@@ -173,7 +193,7 @@
         </span>
 
         <button
-          class="px-3 py-1 border rounded disabled:opacity-50"
+          class="px-3 py-1.5 rounded-full border border-white/20 bg-white/5 disabled:opacity-40 disabled:bg-transparent"
           :disabled="page === totalPages"
           @click="page++"
         >
