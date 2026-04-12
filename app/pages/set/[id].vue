@@ -93,14 +93,22 @@
             To collect
           </button>
         </div>
-
-        <div class="flex-1 max-w-md">
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="Search cards by name or number"
-            class="w-full rounded-full border border-white/15 bg-black/40 px-4 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          />
+        <div class="flex-1 flex items-center gap-3 max-w-xl">
+          <div class="flex-1">
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="Search cards by name or number"
+              class="w-full rounded-full border border-white/15 bg-black/40 px-4 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+          </div>
+          <button
+            type="button"
+            class="px-4 py-2 rounded-full text-[11px] font-semibold border border-emerald-400/70 bg-emerald-500/10 text-emerald-100 hover:bg-emerald-500/20"
+            @click="showScanner = true"
+          >
+            Open camera scanner
+          </button>
         </div>
       </div>
 
@@ -200,6 +208,15 @@
           Next
         </button>
       </div>
+
+      <ClientOnly>
+        <CardCameraScanner
+          v-if="showScanner"
+          @close="showScanner = false"
+          @card-detected="onCardDetected"
+          @image-captured="onImageCaptured"
+        />
+      </ClientOnly>
     </div>
   </div>
 </template>
@@ -216,8 +233,13 @@ const pageSize = 20;
 
 const searchQuery = ref("");
 const filterMode = ref<"all" | "collected" | "uncollected">("all");
+const rarityFilter = ref<string | null>(null);
+const typeFilter = ref<string | null>(null);
+const sortMode = ref<"number" | "name" | "value-desc">("number");
 const gradeMultiplier = ref(1);
 const currency = ref<"EUR" | "USD" | "GBP">("EUR");
+const showScanner = ref(false);
+const cardImageFingerprints = ref<Record<string, number[]>>({});
 
 function cloneCard(value: any): any {
   if (value === null || typeof value !== "object") return value;
@@ -249,6 +271,7 @@ const collectionLoading = ref(false);
 const collectionSaving = ref(false);
 const collectedCardIds = ref<string[]>([]);
 const pricedCards = ref<Record<string, number>>({});
+const cardMeta = ref<Record<string, { condition: string; note: string }>>({});
 
 const totalCards = computed(() => set.value?.cards.length ?? 0);
 const collectedCount = computed(() => collectedCardIds.value.length);
@@ -310,6 +333,26 @@ const isCardCollected = (cardId: string) => {
   return collectedCardIds.value.includes(cardId);
 };
 
+const availableRarities = computed(() => {
+  if (!set.value) return [] as string[];
+  const all = new Set<string>();
+  for (const card of set.value.cards as any[]) {
+    if (card.rarity) all.add(String(card.rarity));
+  }
+  return Array.from(all).sort();
+});
+
+const availableTypes = computed(() => {
+  if (!set.value) return [] as string[];
+  const all = new Set<string>();
+  for (const card of set.value.cards as any[]) {
+    if (Array.isArray(card.types)) {
+      for (const t of card.types) all.add(String(t));
+    }
+  }
+  return Array.from(all).sort();
+});
+
 const cardPrice = (card: any): number | null => {
   const cached = pricedCards.value[card.id as string];
   if (typeof cached === "number" && Number.isFinite(cached) && cached > 0) {
@@ -360,6 +403,107 @@ const toggleCollecting = async () => {
   }
 };
 
+const onCardDetected = (scannedId: string) => {
+  if (!set.value) return;
+
+  const card = (set.value.cards as any[]).find((c) => c.id === scannedId || c.localId === scannedId || c.number === scannedId);
+  if (card) {
+    toggleCard(card.id as string);
+    showScanner.value = false;
+  } else {
+    searchQuery.value = scannedId;
+  }
+};
+
+const FINGERPRINT_WIDTH = 32;
+const FINGERPRINT_HEIGHT = 32;
+
+const computeFingerprintFromImage = (img: HTMLImageElement): number[] => {
+  const canvas = document.createElement("canvas");
+  canvas.width = FINGERPRINT_WIDTH;
+  canvas.height = FINGERPRINT_HEIGHT;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return [];
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const fp: number[] = [];
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    fp.push(((r + g + b) / 3) / 255);
+  }
+  return fp;
+};
+
+const loadImageElement = (src: string): Promise<HTMLImageElement> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = (err) => reject(err);
+    img.src = src;
+  });
+};
+
+const ensureCardFingerprint = async (card: any): Promise<number[] | null> => {
+  if (!process.client) return null;
+  const existing = cardImageFingerprints.value[card.id as string];
+  if (existing && existing.length) return existing;
+
+  const src = card.images?.small || `${card.image}/low.png`;
+  if (!src) return null;
+
+  try {
+    const img = await loadImageElement(src);
+    const fp = computeFingerprintFromImage(img);
+    cardImageFingerprints.value = { ...cardImageFingerprints.value, [card.id as string]: fp };
+    return fp;
+  } catch {
+    return null;
+  }
+};
+
+const fingerprintDistance = (a: number[], b: number[]): number => {
+  const len = Math.min(a.length, b.length);
+  if (!len) return Number.POSITIVE_INFINITY;
+  let sum = 0;
+  for (let i = 0; i < len; i++) {
+    const d = a[i] - b[i];
+    sum += d * d;
+  }
+  return Math.sqrt(sum / len);
+};
+
+const onImageCaptured = async (dataUrl: string) => {
+  if (!process.client || !set.value) return;
+
+  try {
+    const capturedImg = await loadImageElement(dataUrl);
+    const capturedFp = computeFingerprintFromImage(capturedImg);
+
+    let bestCard: any = null;
+    let bestDistance = Number.POSITIVE_INFINITY;
+
+    for (const card of set.value.cards as any[]) {
+      const fp = await ensureCardFingerprint(card);
+      if (!fp) continue;
+      const dist = fingerprintDistance(capturedFp, fp);
+      if (dist < bestDistance) {
+        bestDistance = dist;
+        bestCard = card;
+      }
+    }
+
+    if (bestCard) {
+      toggleCard(bestCard.id as string);
+      showScanner.value = false;
+    }
+  } catch {
+    // ignore capture/compare errors for now
+  }
+};
+
 onMounted(async () => {
   const q = route.query.page;
   const raw = Array.isArray(q) ? q[0] : q;
@@ -372,6 +516,21 @@ onMounted(async () => {
   // Also load collection state for this set
   await loadCollection();
   await loadPricesForCollected();
+
+  // Load local per-card metadata (condition / notes)
+  if (process.client) {
+    try {
+      const raw = window.localStorage.getItem("binderblitz:setCardMeta");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") {
+          cardMeta.value = parsed;
+        }
+      }
+    } catch {
+      // ignore localStorage issues
+    }
+  }
 });
 
 const filteredCards = computed(() => {
@@ -389,7 +548,11 @@ const filteredCards = computed(() => {
       (filterMode.value === "collected" && collected) ||
       (filterMode.value === "uncollected" && !collected);
 
-    return matchesSearch && matchesFilter;
+    const matchesRarity = !rarityFilter.value || card.rarity === rarityFilter.value;
+    const matchesType =
+      !typeFilter.value || (Array.isArray(card.types) && card.types.includes(typeFilter.value));
+
+    return matchesSearch && matchesFilter && matchesRarity && matchesType;
   });
 });
 
@@ -399,13 +562,13 @@ watch([searchQuery, filterMode], () => {
 
 const totalPages = computed(() => {
   if (!set.value) return 1;
-  const count = filteredCards.value.length;
+  const count = sortedCards.value.length;
   return Math.max(1, Math.ceil(count / pageSize));
 });
 
 const paginatedCards = computed(() => {
   if (!set.value) return [];
-  const cards = filteredCards.value;
+  const cards = sortedCards.value;
   const start = (page.value - 1) * pageSize;
   return cards.slice(start, start + pageSize);
 });
@@ -420,6 +583,69 @@ const collectedValueRaw = computed(() => {
 });
 
 const visibleCardCount = computed(() => filteredCards.value.length);
+
+const sortedCards = computed(() => {
+  const base = [...filteredCards.value];
+  if (sortMode.value === "name") {
+    return base.sort((a: any, b: any) => String(a.name).localeCompare(String(b.name)));
+  }
+  if (sortMode.value === "value-desc") {
+    return base.sort((a: any, b: any) => {
+      const va = cardPrice(b) ?? 0;
+      const vb = cardPrice(a) ?? 0;
+      return va - vb;
+    });
+  }
+  // default: by card number / localId
+  return base.sort((a: any, b: any) => {
+    const na = (a.localId ?? a.number ?? "").toString();
+    const nb = (b.localId ?? b.number ?? "").toString();
+    return na.localeCompare(nb, undefined, { numeric: true, sensitivity: "base" });
+  });
+});
+
+const topMissingValuableCards = computed(() => {
+  if (!set.value) return [] as any[];
+  const missing = (set.value.cards as any[]).filter((card) => !isCardCollected(card.id as string));
+  const withPrice = missing
+    .map((card) => ({ card, price: cardPrice(card) ?? 0 }))
+    .filter((x) => x.price > 0);
+  withPrice.sort((a, b) => b.price - a.price);
+  return withPrice.slice(0, 4).map((x) => x.card);
+});
+
+watch(
+  cardMeta,
+  (val) => {
+    if (!process.client) return;
+    try {
+      window.localStorage.setItem("binderblitz:setCardMeta", JSON.stringify(val));
+    } catch {
+      // ignore
+    }
+  },
+  { deep: true },
+);
+
+const getCardMeta = (id: string) => {
+  return (
+    cardMeta.value[id] ?? {
+      condition: "",
+      note: "",
+    }
+  );
+};
+
+const updateCardCondition = (id: string, condition: string) => {
+  const current = getCardMeta(id);
+  cardMeta.value = { ...cardMeta.value, [id]: { ...current, condition } };
+};
+
+const updateCardNote = (id: string, note: string) => {
+  const current = getCardMeta(id);
+  cardMeta.value = { ...cardMeta.value, [id]: { ...current, note } };
+};
+
 // Base pricing is EUR (Cardmarket), totals are maintained in EUR and
 // converted to the display currency when rendered.
 const rates: Record<"EUR" | "USD" | "GBP", number> = {
@@ -427,6 +653,7 @@ const rates: Record<"EUR" | "USD" | "GBP", number> = {
   USD: 1.08,
   GBP: 0.86,
 };
+
 
 const currencySymbol = computed(() => {
   if (currency.value === "USD") return "$";
